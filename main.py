@@ -1,48 +1,33 @@
 
-from random import random, randint, uniform
-from random import choice
+from random import random, randint, uniform, choice
 from json import dumps
 from typing import Iterator
 from faker import Faker
 from conf import MODEL
 
 
-FAKE = Faker()
+FAKE = Faker('ru')
 
 
-def main(get_book=None) -> None:
+def main():
     """
-    Список из 100 случайно сгенерированных книг, запись в файл в формате JSON.
-    :rtype: object
+    Список из 100 книг, запись в файл JSON.
+
     """
     books = book_gen()
-    out = [get_book(books) for _ in range(100)]
-    with open('out.json', 'w') as fd:
-        fd.write(dumps(out, indent=2, ensure_ascii=False))
+    library = [next(books) for _ in range(100)]
+    with open('library.json', 'w', encoding='utf8') as file:
+        file.write(dumps(library, indent=4, ensure_ascii=False))
     return
 
 
-def titles_gen() -> Iterator[str]:
+def title():
     """
-    Генератор. Возвращает случайно выбранное название из списка в файле.
+    Возвращает случайно выбранное название из списка в файле.
     :return: str
     """
-    index = []
-    with open('books.txt', 'rt') as fd:
-        start = -1
-        while start != fd.tell():
-            start = fd.tell()
-            line = fd.readline()
-            line = line.rstrip()
-            if not line:
-                continue
-            index.append([start, len(line)])
-    while True:
-        i = choice(index)
-        with open('books.txt') as fd:
-            fd.seek(i[0])
-            name = fd.read(i[1])
-        yield name
+    with open('books.txt', encoding='utf8') as file:
+        return choice(file.readlines()).rstrip()
 
 
 
@@ -72,7 +57,7 @@ def isbn() -> str:
 
 def rating() -> float:
     """
-    Возвращает случайный рейтинг; диапазон 0-5
+    Возвращает случайный рейтинг
     :return: float
     """
     return round(uniform(0, 5), 2)
@@ -80,32 +65,30 @@ def rating() -> float:
 
 def price() -> float:
     """
-    Возвращает случайную цену; диапазон 400.00-1500.00
+    Возвращает случайную цену
     :return: float
     """
-    return round(uniform(400, 1500), 4)
+    return round(uniform(400, 1500), 1)
 
 
 def authors() -> list:
-    """
-    Возвращает от одного до трех случайно сгенерированных авторов
-    :return: list
-    """
-    return [FAKE.name() for _ in range(randint(1, 3))]
+    mr = f'{FAKE.first_name_male()} {FAKE.last_name_male()}'
+    mrs = f'{FAKE.first_name_female()} {FAKE.last_name_female()}'
+    res = [mr, mrs]
+    return [choice(res) for _ in range(randint(1, 3))]
 
-def book_gen(counter: int = 1) -> Iterator[dict]:
+def book_gen(pk: int = 1) -> Iterator[dict]:
     """
-    Возвращает итератор для случайной генерации книг.
-    :param counter: Стартовое значение для индекса книги, по-умолчанию 1
+    Генератор книг.
+    :param pk: Стартовое значение для книги, по-умолчанию 1
     :return: dict
     """
-    title = titles_gen()
     while True:
         yield {
             'model': MODEL,
-            'pk': counter,
+            'pk': pk,
             'fields': {
-                "title": next(title),
+                "title": title(),
                 "year": year(),
                 "pages": pages(),
                 "isbn13": isbn(),
@@ -114,7 +97,7 @@ def book_gen(counter: int = 1) -> Iterator[dict]:
                 "author": authors()
             }
         }
-        counter += 1
+        pk += 1
 
 
 if __name__ == '__main__':
